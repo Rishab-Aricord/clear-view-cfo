@@ -1,4 +1,4 @@
-import { Calendar, Percent, AlertTriangle, Clock, CheckCircle, Activity, FileText } from 'lucide-react';
+import { Calendar, Percent, AlertTriangle, Clock, CheckCircle, Activity, FileText, AlertCircle } from 'lucide-react';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import FilterBar from '@/components/dashboard/FilterBar';
 import KPITile from '@/components/dashboard/KPITile';
@@ -10,8 +10,9 @@ import ProcessEfficiencyChart from '@/components/dashboard/ProcessEfficiencyChar
 import CostAnalysisChart from '@/components/dashboard/CostAnalysisChart';
 import ProcessTable from '@/components/dashboard/ProcessTable';
 import ExportButton from '@/components/dashboard/ExportButton';
+import AIInsightsPanel from '@/components/dashboard/AIInsightsPanel';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { AlertCircle } from 'lucide-react';
+import { useAIInsights } from '@/hooks/useAIInsights';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const Index = () => {
@@ -29,6 +30,17 @@ const Index = () => {
     setSelectedDepartments,
     refetch,
   } = useDashboardData();
+
+  const {
+    insights,
+    isLoadingInsights,
+    chatMessages,
+    isLoadingChat,
+    recommendations,
+    error: aiError,
+    generateInsights,
+    sendQuery,
+  } = useAIInsights(financialMetrics, processEfficiency, kpis);
 
   // Determine status colors based on thresholds
   const getCloseDaysStatus = (days: number): 'green' | 'yellow' | 'red' => {
@@ -55,44 +67,46 @@ const Index = () => {
         lastUpdated={lastUpdated}
       />
 
-      <main className="container mx-auto px-4 py-6">
-        {/* Error Alert */}
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Connection Error</AlertTitle>
-            <AlertDescription>
-              {error}. Please check your connection and try refreshing.
-            </AlertDescription>
-          </Alert>
-        )}
+      <div className="flex flex-col lg:flex-row">
+        {/* Main Content */}
+        <main className="flex-1 container mx-auto px-4 py-6">
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Connection Error</AlertTitle>
+              <AlertDescription>
+                {error}. Please check your connection and try refreshing.
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {/* Filter Bar with Export Button */}
-        <div className="flex flex-col lg:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <FilterBar
-              dateFrom={filters.dateFrom}
-              dateTo={filters.dateTo}
-              selectedRegions={filters.selectedRegions}
-              selectedDepartments={filters.selectedDepartments}
-              onDateFromChange={setDateFrom}
-              onDateToChange={setDateTo}
-              onRegionsChange={setSelectedRegions}
-              onDepartmentsChange={setSelectedDepartments}
-              onRefresh={refetch}
+          {/* Filter Bar with Export Button */}
+          <div className="flex flex-col lg:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <FilterBar
+                dateFrom={filters.dateFrom}
+                dateTo={filters.dateTo}
+                selectedRegions={filters.selectedRegions}
+                selectedDepartments={filters.selectedDepartments}
+                onDateFromChange={setDateFrom}
+                onDateToChange={setDateTo}
+                onRegionsChange={setSelectedRegions}
+                onDepartmentsChange={setSelectedDepartments}
+                onRefresh={refetch}
+                isLoading={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Export Button Row */}
+          <div className="flex justify-end mb-6">
+            <ExportButton
+              financialData={financialMetrics}
+              processData={processEfficiency}
               isLoading={isLoading}
             />
           </div>
-        </div>
-
-        {/* Export Button Row */}
-        <div className="flex justify-end mb-6">
-          <ExportButton
-            financialData={financialMetrics}
-            processData={processEfficiency}
-            isLoading={isLoading}
-          />
-        </div>
 
         {/* Main KPI Tiles */}
         <section className="mb-8">
@@ -223,11 +237,26 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="text-center text-sm text-muted-foreground py-6 border-t border-border">
-          <p>CFO Performance Analytics Dashboard • Real-time financial operations monitoring</p>
-        </footer>
-      </main>
+          {/* Footer */}
+          <footer className="text-center text-sm text-muted-foreground py-6 border-t border-border">
+            <p>CFO Performance Analytics Dashboard • Real-time financial operations monitoring</p>
+          </footer>
+        </main>
+
+        {/* AI Insights Panel - Right side on desktop, bottom on mobile */}
+        <aside className="lg:sticky lg:top-0 lg:h-screen p-4 lg:border-l border-border">
+          <AIInsightsPanel
+            insights={insights}
+            isLoadingInsights={isLoadingInsights}
+            chatMessages={chatMessages}
+            isLoadingChat={isLoadingChat}
+            recommendations={recommendations}
+            error={aiError}
+            onSendQuery={sendQuery}
+            onRefresh={generateInsights}
+          />
+        </aside>
+      </div>
     </div>
   );
 };
