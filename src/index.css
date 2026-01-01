@@ -177,12 +177,33 @@
     animation: slideUp 0.5s ease-out forwards;
   }
 
+  .animate-fade-in-delay-100 {
+    animation: fadeIn 0.5s ease-out 100ms forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in-delay-200 {
+    animation: fadeIn 0.5s ease-out 200ms forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in-delay-300 {
+    animation: fadeIn 0.5s ease-out 300ms forwards;
+    opacity: 0;
+  }
+
+  .transition-filter {
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  }
+
   @keyframes fadeIn {
     from {
       opacity: 0;
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
+      transform: translateY(0);
     }
   }
 
@@ -195,5 +216,54 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  @keyframes pulse-brand {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  .animate-pulse-brand {
+    animation: pulse-brand 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Focus styles for accessibility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  /* Skip link for keyboard navigation */
+  .skip-link {
+    @apply absolute left-[-9999px] z-50 p-4 bg-primary text-primary-foreground;
+  }
+
+  .skip-link:focus {
+    @apply left-4 top-4;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: 220 13% 70%;
+  }
+  
+  .dark {
+    --border: 223 47% 40%;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

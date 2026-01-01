@@ -1,5 +1,7 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { FinancialCloseMetric } from '@/lib/supabase';
+import ChartSkeleton from './ChartSkeleton';
+import EmptyState from './EmptyState';
 
 interface FinancialCloseChartProps {
   data: FinancialCloseMetric[];
@@ -15,22 +17,35 @@ const FinancialCloseChart = ({ data, isLoading }: FinancialCloseChartProps) => {
   }));
 
   if (isLoading) {
+    return <ChartSkeleton title="Loading financial close data..." />;
+  }
+
+  if (data.length === 0) {
     return (
-      <div className="chart-container h-80 flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading chart data...</div>
+      <div className="chart-container">
+        <h3 className="section-title">Financial Close Performance</h3>
+        <EmptyState type="no-filter-results" />
       </div>
     );
   }
 
   return (
-    <div className="chart-container animate-fade-in">
-      <h3 className="section-title">Financial Close Performance</h3>
+    <div 
+      className="chart-container animate-fade-in"
+      role="figure"
+      aria-label="Financial close performance chart showing close days and automation rate over time"
+    >
+      <h3 className="section-title" id="financial-close-chart-title">Financial Close Performance</h3>
       <p className="text-sm text-muted-foreground mb-4">
         Track close days and automation rate over time
       </p>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          <AreaChart 
+            data={chartData} 
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            aria-labelledby="financial-close-chart-title"
+          >
             <defs>
               <linearGradient id="colorCloseDays" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />

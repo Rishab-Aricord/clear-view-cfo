@@ -1,5 +1,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { ProcessEfficiency } from '@/lib/supabase';
+import ChartSkeleton from './ChartSkeleton';
+import EmptyState from './EmptyState';
 
 interface CostAnalysisChartProps {
   data: ProcessEfficiency[];
@@ -28,9 +30,14 @@ const CostAnalysisChart = ({ data, isLoading }: CostAnalysisChartProps) => {
   ];
 
   if (isLoading) {
+    return <ChartSkeleton title="Loading cost analysis data..." />;
+  }
+
+  if (data.length === 0) {
     return (
-      <div className="chart-container h-80 flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading chart data...</div>
+      <div className="chart-container">
+        <h3 className="section-title">Cost Distribution by Category</h3>
+        <EmptyState type="no-filter-results" />
       </div>
     );
   }
@@ -38,14 +45,19 @@ const CostAnalysisChart = ({ data, isLoading }: CostAnalysisChartProps) => {
   const totalCost = chartData.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <div className="chart-container animate-fade-in" style={{ animationDelay: '300ms' }}>
-      <h3 className="section-title">Cost Distribution by Category</h3>
+    <div 
+      className="chart-container animate-fade-in" 
+      style={{ animationDelay: '300ms' }}
+      role="figure"
+      aria-label={`Cost distribution pie chart. Total costs: $${totalCost.toLocaleString()}`}
+    >
+      <h3 className="section-title" id="cost-analysis-chart-title">Cost Distribution by Category</h3>
       <p className="text-sm text-muted-foreground mb-4">
-        Total process costs: ${totalCost.toLocaleString()}
+        Total process costs: <span className="font-semibold">${totalCost.toLocaleString()}</span>
       </p>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+          <PieChart aria-labelledby="cost-analysis-chart-title">
             <Pie
               data={chartData}
               cx="50%"
