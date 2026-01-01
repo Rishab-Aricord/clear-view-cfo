@@ -1,5 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { ProcessEfficiency } from '@/lib/supabase';
+import ChartSkeleton from './ChartSkeleton';
+import EmptyState from './EmptyState';
 
 interface ProcessEfficiencyChartProps {
   data: ProcessEfficiency[];
@@ -29,22 +31,36 @@ const ProcessEfficiencyChart = ({ data, isLoading }: ProcessEfficiencyChartProps
   };
 
   if (isLoading) {
+    return <ChartSkeleton title="Loading process efficiency data..." />;
+  }
+
+  if (data.length === 0) {
     return (
-      <div className="chart-container h-80 flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading chart data...</div>
+      <div className="chart-container">
+        <h3 className="section-title">Process Efficiency by Cycle Time</h3>
+        <EmptyState type="no-filter-results" />
       </div>
     );
   }
 
   return (
-    <div className="chart-container animate-fade-in" style={{ animationDelay: '200ms' }}>
-      <h3 className="section-title">Process Efficiency by Cycle Time</h3>
+    <div 
+      className="chart-container animate-fade-in" 
+      style={{ animationDelay: '200ms' }}
+      role="figure"
+      aria-label="Process efficiency bar chart showing cycle time by process status"
+    >
+      <h3 className="section-title" id="process-efficiency-chart-title">Process Efficiency by Cycle Time</h3>
       <p className="text-sm text-muted-foreground mb-4">
         Cycle time in hours colored by process status
       </p>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 60 }}>
+          <BarChart 
+            data={chartData} 
+            margin={{ top: 10, right: 30, left: 0, bottom: 60 }}
+            aria-labelledby="process-efficiency-chart-title"
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis 
               dataKey="name" 
@@ -89,13 +105,13 @@ const ProcessEfficiencyChart = ({ data, isLoading }: ProcessEfficiencyChartProps
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex items-center justify-center gap-6 mt-4">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-success" />
+      <div className="flex items-center justify-center gap-6 mt-4" role="list" aria-label="Chart legend">
+        <div className="flex items-center gap-2" role="listitem">
+          <div className="w-3 h-3 rounded-full bg-success" aria-hidden="true" />
           <span className="text-xs text-muted-foreground">Completed</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-warning" />
+        <div className="flex items-center gap-2" role="listitem">
+          <div className="w-3 h-3 rounded-full bg-warning" aria-hidden="true" />
           <span className="text-xs text-muted-foreground">In Progress</span>
         </div>
       </div>

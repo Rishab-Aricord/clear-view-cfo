@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { subMonths, startOfMonth, endOfMonth, parseISO, isAfter, isBefore, isEqual } from 'date-fns';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { subMonths, parseISO, isAfter, isBefore, isEqual } from 'date-fns';
 import { supabase, FinancialCloseMetric, ProcessEfficiency } from '@/lib/supabase';
 
 export interface FilterState {
@@ -7,6 +7,23 @@ export interface FilterState {
   dateTo: Date;
   selectedRegions: string[];
   selectedDepartments: string[];
+}
+
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 }
 
 export const useDashboardData = () => {
@@ -23,6 +40,9 @@ export const useDashboardData = () => {
     selectedRegions: ['All Regions'],
     selectedDepartments: ['All Departments'],
   });
+
+  // Debounce filters to avoid excessive re-renders (500ms)
+  const debouncedFilters = useDebounce(filters, 500);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -65,52 +85,64 @@ export const useDashboardData = () => {
     fetchData();
   }, [fetchData]);
 
-  // Filter data based on current filters
+  // Filter data based on debounced filters
   const filteredFinancialMetrics = useMemo(() => {
     return financialMetrics.filter((m) => {
-      // Date filter - use period field (e.g., "2023-01-31")
       const itemDate = m.period ? parseISO(m.period) : new Date();
-      const afterFrom = isAfter(itemDate, filters.dateFrom) || isEqual(itemDate, filters.dateFrom);
-      const beforeTo = isBefore(itemDate, filters.dateTo) || isEqual(itemDate, filters.dateTo);
+      const afterFrom = isAfter(itemDate, debouncedFilters.dateFrom) || isEqual(itemDate, debouncedFilters.dateFrom);
+      const beforeTo = isBefore(itemDate, debouncedFilters.dateTo) || isEqual(itemDate, debouncedFilters.dateTo);
       const inDateRange = afterFrom && beforeTo;
 
-      // Region filter
       const regionMatch =
-        filters.selectedRegions.includes('All Regions') ||
-        filters.selectedRegions.includes(m.region);
+        debouncedFilters.selectedRegions.includes('All Regions') ||
+        debouncedFilters.selectedRegions.includes(m.region);
 
-      // Department filter
       const deptMatch =
-        filters.selectedDepartments.includes('All Departments') ||
-        filters.selectedDepartments.includes(m.department);
+        debouncedFilters.selectedDepartments.includes('All Departments') ||
+        debouncedFilters.selectedDepartments.includes(m.department);
 
       return inDateRange && regionMatch && deptMatch;
     });
-  }, [financialMetrics, filters]);
+  }, [financialMetrics, debouncedFilters]);
 
   const filteredProcessEfficiency = useMemo(() => {
     return processEfficiency.filter((p) => {
-      // Date filter - use date field (e.g., "2022-12-04")
       const itemDate = p.date ? parseISO(p.date) : new Date();
-      const afterFrom = isAfter(itemDate, filters.dateFrom) || isEqual(itemDate, filters.dateFrom);
-      const beforeTo = isBefore(itemDate, filters.dateTo) || isEqual(itemDate, filters.dateTo);
+      const afterFrom = isAfter(itemDate, debouncedFilters.dateFrom) || isEqual(itemDate, debouncedFilters.dateFrom);
+      const beforeTo = isBefore(itemDate, debouncedFilters.dateTo) || isEqual(itemDate, debouncedFilters.dateTo);
       const inDateRange = afterFrom && beforeTo;
 
       return inDateRange;
     });
-  }, [processEfficiency, filters]);
+  }, [processEfficiency, debouncedFilters]);
+
+  // Check if no data due to filters
+  const hasNoFilterResults = useMemo(() => {
+    return (
+      !isLoading &&
+      financialMetrics.length > 0 &&
+      filteredFinancialMetrics.length === 0
+    );
+  }, [isLoading, financialMetrics.length, filteredFinancialMetrics.length]);
+
+  // Reset filters to defaults
+  const resetFilters = useCallback(() => {
+    setFilters({
+      dateFrom: subMonths(new Date(), 36),
+      dateTo: new Date(),
+      selectedRegions: ['All Regions'],
+      selectedDepartments: ['All Departments'],
+    });
+  }, []);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
-    // KPI 1: Average Financial Close Days
     const avgCloseDays =
       filteredFinancialMetrics.length > 0
         ? filteredFinancialMetrics.reduce((sum, m) => sum + m.close_days, 0) /
           filteredFinancialMetrics.length
         : 0;
 
-    // Calculate previous period for trends (using period field)
-    // Get latest period from data
     const sortedPeriods = [...new Set(financialMetrics.map(m => m.period))].sort().reverse();
     const latestPeriod = sortedPeriods[0];
     const prevPeriod = sortedPeriods[1];
@@ -135,7 +167,6 @@ export const useDashboardData = () => {
         ? ((currentPeriodAvgClose - prevPeriodAvgClose) / prevPeriodAvgClose) * 100
         : 0;
 
-    // KPI 2: Automation Adoption Rate
     const avgAutomationRate =
       filteredFinancialMetrics.length > 0
         ? filteredFinancialMetrics.reduce((sum, m) => sum + m.automation_rate, 0) /
@@ -161,12 +192,10 @@ export const useDashboardData = () => {
           100
         : 0;
 
-    // KPI 3: Process Error Reduction - compare latest two months of process data
     const sortedDates = [...new Set(processEfficiency.map(p => p.date))].sort().reverse();
     const latestDate = sortedDates[0];
     const prevDate = sortedDates[1];
     
-    // Get all processes from the latest month
     const latestMonth = latestDate ? latestDate.substring(0, 7) : '';
     const prevMonth = prevDate ? prevDate.substring(0, 7) : '';
     
@@ -195,7 +224,6 @@ export const useDashboardData = () => {
         ? ((currentMonthAvgError - prevMonthAvgError) / prevMonthAvgError) * 100
         : 0;
 
-    // Other KPIs
     const totalReconciliationItems = filteredFinancialMetrics.reduce(
       (sum, m) => sum + m.reconciliation_items,
       0
@@ -267,6 +295,8 @@ export const useDashboardData = () => {
     error,
     kpis,
     filters,
+    hasNoFilterResults,
+    resetFilters,
     setDateFrom,
     setDateTo,
     setSelectedRegions,

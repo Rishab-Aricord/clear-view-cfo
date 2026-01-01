@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type StatusColor = 'green' | 'yellow' | 'red' | 'neutral';
 
@@ -20,6 +21,7 @@ interface KPITileProps {
   };
   comparison?: string;
   delay?: number;
+  isLoading?: boolean;
 }
 
 const KPITile = ({
@@ -35,6 +37,7 @@ const KPITile = ({
   progressBar,
   comparison,
   delay = 0,
+  isLoading = false,
 }: KPITileProps) => {
   const getStatusColorClasses = (color: StatusColor) => {
     switch (color) {
@@ -72,8 +75,8 @@ const KPITile = ({
   const colorClasses = getStatusColorClasses(statusColor);
 
   const getTrendIcon = () => {
-    if (trend === undefined || trend === 0) return <Minus className="w-4 h-4" />;
-    return trend > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />;
+    if (trend === undefined || trend === 0) return <Minus className="w-4 h-4" aria-hidden="true" />;
+    return trend > 0 ? <TrendingUp className="w-4 h-4" aria-hidden="true" /> : <TrendingDown className="w-4 h-4" aria-hidden="true" />;
   };
 
   const getTrendClass = () => {
@@ -85,23 +88,61 @@ const KPITile = ({
     return trend > 0 ? 'text-success' : 'text-destructive';
   };
 
+  const getTrendLabel = () => {
+    if (trend === undefined) return '';
+    if (trend === 0) return 'No change from previous period';
+    const direction = trend > 0 ? 'increased' : 'decreased';
+    return `${direction} by ${Math.abs(trend).toFixed(1)}%`;
+  };
+
+  if (isLoading) {
+    return (
+      <div
+        className={cn(
+          'bg-card rounded-xl border shadow-sm p-6 animate-fade-in',
+          colorClasses.border
+        )}
+        style={{ animationDelay: `${delay}ms` }}
+        role="status"
+        aria-label={`Loading ${title} data`}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <Skeleton className="h-12 w-12 rounded-lg" />
+          <Skeleton className="h-5 w-16" />
+        </div>
+        <Skeleton className="h-3 w-32 mb-2" />
+        <div className="flex items-baseline gap-2 mb-2">
+          <Skeleton className="h-12 w-20" />
+          <Skeleton className="h-5 w-10" />
+        </div>
+        <Skeleton className="h-2 w-full mb-3" />
+        <Skeleton className="h-3 w-28" />
+      </div>
+    );
+  }
+
   return (
-    <div
+    <article
       className={cn(
-        'bg-card rounded-xl border shadow-sm p-6 transition-all duration-300 hover:shadow-lg animate-slide-up',
+        'bg-card rounded-xl border shadow-sm p-6 transition-all duration-300 hover:shadow-lg animate-slide-up focus-ring',
         colorClasses.border
       )}
       style={{ animationDelay: `${delay}ms` }}
+      tabIndex={0}
+      aria-label={`${title}: ${value}${unit || ''}, ${target || ''}${trend !== undefined ? `, ${getTrendLabel()}` : ''}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
-        <div className={cn('p-3 rounded-lg', colorClasses.bg)}>
+        <div className={cn('p-3 rounded-lg', colorClasses.bg)} aria-hidden="true">
           <div className={colorClasses.text}>{icon}</div>
         </div>
         {trend !== undefined && (
-          <div className={cn('flex items-center gap-1 text-sm font-medium', getTrendClass())}>
+          <div 
+            className={cn('flex items-center gap-1 text-sm font-medium', getTrendClass())}
+            aria-label={getTrendLabel()}
+          >
             {getTrendIcon()}
-            <span>{trend > 0 ? '+' : ''}{trend.toFixed(1)}%</span>
+            <span aria-hidden="true">{trend > 0 ? '+' : ''}{trend.toFixed(1)}%</span>
           </div>
         )}
       </div>
@@ -123,7 +164,7 @@ const KPITile = ({
 
       {/* Progress Bar */}
       {progressBar && (
-        <div className="mb-3">
+        <div className="mb-3" role="progressbar" aria-valuenow={progressBar.value} aria-valuemin={0} aria-valuemax={progressBar.max}>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
               className={cn('h-full rounded-full transition-all duration-500', colorClasses.progress)}
@@ -154,7 +195,7 @@ const KPITile = ({
           {comparison}
         </p>
       )}
-    </div>
+    </article>
   );
 };
 
