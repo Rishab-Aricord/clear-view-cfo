@@ -4,6 +4,25 @@
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
+## What is this project about-
+**Business Context**
+Modern CFO offices face mounting pressure to accelerate financial close cycles, improve accuracy, and optimize resource allocation. This dashboard addresses these challenges by consolidating performance metrics, identifying bottlenecks, and recommending data-driven improvements using advanced AI reasoning.
+**Problem Statement**
+Current Pain Points
+1.	Slow Financial Close Cycles – Many organizations take 8-15 days to close books, delaying decision-making
+2.	Manual Process Inefficiencies – High reliance on spreadsheets and manual reconciliations creates errors and bottlenecks
+3.	Limited Visibility – CFO teams lack real-time insights into process performance across departments and regions
+4.	Reactive Problem-Solving – Issues are identified only after they impact timelines, not predicted in advance
+5.	Fragmented Data – Metrics scattered across systems make it difficult to identify patterns and trends
+Proposed Solution
+A unified, AI-powered dashboard that:
+•	Monitors financial close performance in real-time
+•	Tracks process efficiency metrics across departments
+•	Identifies automation opportunities using pattern recognition
+•	Provides predictive insights to prevent delays and errors
+•	Enables data-driven decision-making with interactive visualizations
+
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
