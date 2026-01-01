@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { subMonths, startOfMonth, endOfMonth, parseISO, isAfter, isBefore, isEqual } from 'date-fns';
 import { supabase, FinancialCloseMetric, ProcessEfficiency } from '@/lib/supabase';
 
 export interface FilterState {
@@ -16,9 +16,9 @@ export const useDashboardData = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter state - default to last 12 months
+  // Filter state - default to last 36 months to capture historical data
   const [filters, setFilters] = useState<FilterState>({
-    dateFrom: subMonths(new Date(), 12),
+    dateFrom: subMonths(new Date(), 36),
     dateTo: new Date(),
     selectedRegions: ['All Regions'],
     selectedDepartments: ['All Departments'],
@@ -68,12 +68,11 @@ export const useDashboardData = () => {
   // Filter data based on current filters
   const filteredFinancialMetrics = useMemo(() => {
     return financialMetrics.filter((m) => {
-      // Date filter
-      const itemDate = m.created_at ? parseISO(m.created_at) : new Date();
-      const inDateRange = isWithinInterval(itemDate, {
-        start: filters.dateFrom,
-        end: filters.dateTo,
-      });
+      // Date filter - use period field (e.g., "2023-01-31")
+      const itemDate = m.period ? parseISO(m.period) : new Date();
+      const afterFrom = isAfter(itemDate, filters.dateFrom) || isEqual(itemDate, filters.dateFrom);
+      const beforeTo = isBefore(itemDate, filters.dateTo) || isEqual(itemDate, filters.dateTo);
+      const inDateRange = afterFrom && beforeTo;
 
       // Region filter
       const regionMatch =
@@ -91,12 +90,11 @@ export const useDashboardData = () => {
 
   const filteredProcessEfficiency = useMemo(() => {
     return processEfficiency.filter((p) => {
-      // Date filter
-      const itemDate = p.created_at ? parseISO(p.created_at) : new Date();
-      const inDateRange = isWithinInterval(itemDate, {
-        start: filters.dateFrom,
-        end: filters.dateTo,
-      });
+      // Date filter - use date field (e.g., "2022-12-04")
+      const itemDate = p.date ? parseISO(p.date) : new Date();
+      const afterFrom = isAfter(itemDate, filters.dateFrom) || isEqual(itemDate, filters.dateFrom);
+      const beforeTo = isBefore(itemDate, filters.dateTo) || isEqual(itemDate, filters.dateTo);
+      const inDateRange = afterFrom && beforeTo;
 
       return inDateRange;
     });
@@ -111,38 +109,30 @@ export const useDashboardData = () => {
           filteredFinancialMetrics.length
         : 0;
 
-    // Calculate previous month close days for trend
-    const currentMonth = new Date();
-    const prevMonth = subMonths(currentMonth, 1);
-    const currentMonthStart = startOfMonth(currentMonth);
-    const prevMonthStart = startOfMonth(prevMonth);
-    const prevMonthEnd = endOfMonth(prevMonth);
+    // Calculate previous period for trends (using period field)
+    // Get latest period from data
+    const sortedPeriods = [...new Set(financialMetrics.map(m => m.period))].sort().reverse();
+    const latestPeriod = sortedPeriods[0];
+    const prevPeriod = sortedPeriods[1];
 
-    const currentMonthMetrics = financialMetrics.filter((m) => {
-      const date = m.created_at ? parseISO(m.created_at) : new Date();
-      return date >= currentMonthStart;
-    });
+    const currentPeriodMetrics = financialMetrics.filter((m) => m.period === latestPeriod);
+    const prevPeriodMetrics = financialMetrics.filter((m) => m.period === prevPeriod);
 
-    const prevMonthMetrics = financialMetrics.filter((m) => {
-      const date = m.created_at ? parseISO(m.created_at) : new Date();
-      return date >= prevMonthStart && date <= prevMonthEnd;
-    });
-
-    const currentMonthAvgClose =
-      currentMonthMetrics.length > 0
-        ? currentMonthMetrics.reduce((sum, m) => sum + m.close_days, 0) /
-          currentMonthMetrics.length
+    const currentPeriodAvgClose =
+      currentPeriodMetrics.length > 0
+        ? currentPeriodMetrics.reduce((sum, m) => sum + m.close_days, 0) /
+          currentPeriodMetrics.length
         : avgCloseDays;
 
-    const prevMonthAvgClose =
-      prevMonthMetrics.length > 0
-        ? prevMonthMetrics.reduce((sum, m) => sum + m.close_days, 0) /
-          prevMonthMetrics.length
+    const prevPeriodAvgClose =
+      prevPeriodMetrics.length > 0
+        ? prevPeriodMetrics.reduce((sum, m) => sum + m.close_days, 0) /
+          prevPeriodMetrics.length
         : avgCloseDays;
 
     const closeDaysTrend =
-      prevMonthAvgClose > 0
-        ? ((currentMonthAvgClose - prevMonthAvgClose) / prevMonthAvgClose) * 100
+      prevPeriodAvgClose > 0
+        ? ((currentPeriodAvgClose - prevPeriodAvgClose) / prevPeriodAvgClose) * 100
         : 0;
 
     // KPI 2: Automation Adoption Rate
@@ -152,35 +142,41 @@ export const useDashboardData = () => {
           filteredFinancialMetrics.length
         : 0;
 
-    const currentMonthAvgAutomation =
-      currentMonthMetrics.length > 0
-        ? currentMonthMetrics.reduce((sum, m) => sum + m.automation_rate, 0) /
-          currentMonthMetrics.length
+    const currentPeriodAvgAutomation =
+      currentPeriodMetrics.length > 0
+        ? currentPeriodMetrics.reduce((sum, m) => sum + m.automation_rate, 0) /
+          currentPeriodMetrics.length
         : avgAutomationRate;
 
-    const prevMonthAvgAutomation =
-      prevMonthMetrics.length > 0
-        ? prevMonthMetrics.reduce((sum, m) => sum + m.automation_rate, 0) /
-          prevMonthMetrics.length
+    const prevPeriodAvgAutomation =
+      prevPeriodMetrics.length > 0
+        ? prevPeriodMetrics.reduce((sum, m) => sum + m.automation_rate, 0) /
+          prevPeriodMetrics.length
         : avgAutomationRate;
 
     const automationTrend =
-      prevMonthAvgAutomation > 0
-        ? ((currentMonthAvgAutomation - prevMonthAvgAutomation) /
-            prevMonthAvgAutomation) *
+      prevPeriodAvgAutomation > 0
+        ? ((currentPeriodAvgAutomation - prevPeriodAvgAutomation) /
+            prevPeriodAvgAutomation) *
           100
         : 0;
 
-    // KPI 3: Process Error Reduction
-    const currentMonthProcesses = processEfficiency.filter((p) => {
-      const date = p.created_at ? parseISO(p.created_at) : new Date();
-      return date >= currentMonthStart;
-    });
+    // KPI 3: Process Error Reduction - compare latest two months of process data
+    const sortedDates = [...new Set(processEfficiency.map(p => p.date))].sort().reverse();
+    const latestDate = sortedDates[0];
+    const prevDate = sortedDates[1];
+    
+    // Get all processes from the latest month
+    const latestMonth = latestDate ? latestDate.substring(0, 7) : '';
+    const prevMonth = prevDate ? prevDate.substring(0, 7) : '';
+    
+    const currentMonthProcesses = processEfficiency.filter((p) => 
+      p.date?.startsWith(latestMonth)
+    );
 
-    const prevMonthProcesses = processEfficiency.filter((p) => {
-      const date = p.created_at ? parseISO(p.created_at) : new Date();
-      return date >= prevMonthStart && date <= prevMonthEnd;
-    });
+    const prevMonthProcesses = processEfficiency.filter((p) => 
+      p.date?.startsWith(prevMonth)
+    );
 
     const currentMonthAvgError =
       currentMonthProcesses.length > 0
