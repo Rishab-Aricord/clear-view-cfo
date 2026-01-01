@@ -145,16 +145,16 @@ const Index = () => {
               delay={400}
             />
             <KPICard
-              title="Optimal Processes"
+              title="Completed Processes"
               value={kpis.optimalProcesses}
-              subtitle="running smoothly"
+              subtitle="finished successfully"
               icon={<CheckCircle className="w-6 h-6" />}
               delay={500}
             />
             <KPICard
-              title="Critical Processes"
+              title="In Progress"
               value={kpis.criticalProcesses}
-              subtitle="need attention"
+              subtitle="currently running"
               icon={<Activity className="w-6 h-6" />}
               delay={600}
             />

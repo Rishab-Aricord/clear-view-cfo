@@ -9,13 +9,15 @@ interface ProcessTableProps {
 
 const ProcessTable = ({ data, isLoading }: ProcessTableProps) => {
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'optimal':
-        return <Badge className="bg-success text-success-foreground">Optimal</Badge>;
-      case 'warning':
-        return <Badge className="bg-warning text-warning-foreground">Warning</Badge>;
-      case 'critical':
-        return <Badge variant="destructive">Critical</Badge>;
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return <Badge className="bg-success text-success-foreground">Completed</Badge>;
+      case 'in progress':
+        return <Badge className="bg-warning text-warning-foreground">In Progress</Badge>;
+      case 'pending':
+        return <Badge variant="secondary">Pending</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Failed</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }

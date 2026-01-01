@@ -220,11 +220,11 @@ export const useDashboardData = () => {
     const totalCost = filteredProcessEfficiency.reduce((sum, p) => sum + p.cost, 0);
 
     const optimalProcesses = filteredProcessEfficiency.filter(
-      (p) => p.status === 'optimal'
+      (p) => p.status?.toLowerCase() === 'completed'
     ).length;
 
     const criticalProcesses = filteredProcessEfficiency.filter(
-      (p) => p.status === 'critical'
+      (p) => p.status?.toLowerCase() === 'in progress'
     ).length;
 
     return {

@@ -19,10 +19,11 @@ const ProcessEfficiencyChart = ({ data, isLoading }: ProcessEfficiencyChartProps
   }));
 
   const getBarColor = (status: string) => {
-    switch (status) {
-      case 'optimal': return 'hsl(var(--chart-3))';
-      case 'warning': return 'hsl(var(--chart-4))';
-      case 'critical': return 'hsl(var(--destructive))';
+    switch (status?.toLowerCase()) {
+      case 'completed': return 'hsl(var(--chart-3))';
+      case 'in progress': return 'hsl(var(--chart-4))';
+      case 'pending': return 'hsl(var(--chart-1))';
+      case 'failed': return 'hsl(var(--destructive))';
       default: return 'hsl(var(--chart-1))';
     }
   };
@@ -91,15 +92,11 @@ const ProcessEfficiencyChart = ({ data, isLoading }: ProcessEfficiencyChartProps
       <div className="flex items-center justify-center gap-6 mt-4">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-success" />
-          <span className="text-xs text-muted-foreground">Optimal</span>
+          <span className="text-xs text-muted-foreground">Completed</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-warning" />
-          <span className="text-xs text-muted-foreground">Warning</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-destructive" />
-          <span className="text-xs text-muted-foreground">Critical</span>
+          <span className="text-xs text-muted-foreground">In Progress</span>
         </div>
       </div>
     </div>
