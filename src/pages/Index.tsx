@@ -1,13 +1,18 @@
-import { Calendar, Percent, AlertTriangle, Clock, DollarSign, CheckCircle, Activity, FileText } from 'lucide-react';
+import { Calendar, Percent, AlertTriangle, Clock, CheckCircle, Activity, FileText } from 'lucide-react';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import FilterBar from '@/components/dashboard/FilterBar';
 import KPITile from '@/components/dashboard/KPITile';
 import KPICard from '@/components/dashboard/KPICard';
+import FinancialCloseTrendChart from '@/components/dashboard/FinancialCloseTrendChart';
+import CategoryEfficiencyChart from '@/components/dashboard/CategoryEfficiencyChart';
 import FinancialCloseChart from '@/components/dashboard/FinancialCloseChart';
 import ProcessEfficiencyChart from '@/components/dashboard/ProcessEfficiencyChart';
 import CostAnalysisChart from '@/components/dashboard/CostAnalysisChart';
 import ProcessTable from '@/components/dashboard/ProcessTable';
+import ExportButton from '@/components/dashboard/ExportButton';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const Index = () => {
   const {
@@ -15,6 +20,7 @@ const Index = () => {
     processEfficiency,
     isLoading,
     lastUpdated,
+    error,
     kpis,
     filters,
     setDateFrom,
@@ -50,19 +56,43 @@ const Index = () => {
       />
 
       <main className="container mx-auto px-4 py-6">
-        {/* Filter Bar */}
-        <FilterBar
-          dateFrom={filters.dateFrom}
-          dateTo={filters.dateTo}
-          selectedRegions={filters.selectedRegions}
-          selectedDepartments={filters.selectedDepartments}
-          onDateFromChange={setDateFrom}
-          onDateToChange={setDateTo}
-          onRegionsChange={setSelectedRegions}
-          onDepartmentsChange={setSelectedDepartments}
-          onRefresh={refetch}
-          isLoading={isLoading}
-        />
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Connection Error</AlertTitle>
+            <AlertDescription>
+              {error}. Please check your connection and try refreshing.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Filter Bar with Export Button */}
+        <div className="flex flex-col lg:flex-row gap-4 mb-6">
+          <div className="flex-1">
+            <FilterBar
+              dateFrom={filters.dateFrom}
+              dateTo={filters.dateTo}
+              selectedRegions={filters.selectedRegions}
+              selectedDepartments={filters.selectedDepartments}
+              onDateFromChange={setDateFrom}
+              onDateToChange={setDateTo}
+              onRegionsChange={setSelectedRegions}
+              onDepartmentsChange={setSelectedDepartments}
+              onRefresh={refetch}
+              isLoading={isLoading}
+            />
+          </div>
+        </div>
+
+        {/* Export Button Row */}
+        <div className="flex justify-end mb-6">
+          <ExportButton
+            financialData={financialMetrics}
+            processData={processEfficiency}
+            isLoading={isLoading}
+          />
+        </div>
 
         {/* Main KPI Tiles */}
         <section className="mb-8">
@@ -126,6 +156,20 @@ const Index = () => {
           </div>
         </section>
 
+        {/* NEW: Trend Charts Grid */}
+        <section className="mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <FinancialCloseTrendChart
+              data={financialMetrics}
+              isLoading={isLoading}
+            />
+            <CategoryEfficiencyChart
+              data={processEfficiency}
+              isLoading={isLoading}
+            />
+          </div>
+        </section>
+
         {/* Secondary KPIs */}
         <section className="mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -161,7 +205,7 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Charts Grid */}
+        {/* Original Charts Grid */}
         <section className="mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <FinancialCloseChart data={financialMetrics} isLoading={isLoading} />
